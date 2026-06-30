@@ -1,0 +1,25 @@
+mongoDb cluster credential
+cluster 0
+username => Lucifer21SF
+password => urlshortner1
+
+step 1
+create atlas account (free tier)
+create a cluster
+created a user for accessing cluster
+connecting it to Compass 
+(Choose Your Connection Method 
+Connect with Application: Use drivers for Node.js, Python, Java, etc.
+MongoDB Compass: Connect via MongoDB’s GUI tool.
+MongoDB Shell: Use the CLI to interact with your database.)
+
+What is a cluster?
+Why AWS/Azure/GCP?
+Why IP whitelisting?
+To allow specific IP addresses to access your MongoDB cluster (Navigate to Network Access)
+Why these roles? 
+To allow specific user withj specific roles to access your MongoDB cluster (Navigate to Database Access)
+
+either u use Mongo db (no sql based db) or my sql (sql based db) u need connection string to connct to the corresponding sql or no sql server
+
+mongodb+srv://Lucifer21SF:urlshortner1@cluster0.rk9lcla.mongodb.net/

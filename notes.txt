@@ -1,0 +1,452 @@
+MongoDB Atlas is a fully managed cloud database service that automates deployment, scaling, backups, and security across AWS, Google Cloud, and Azure, providing high availability and low-latency performance.
+
+Atlas is a cloud service provided by MongoDB
+
+You don't have to:
+
+install MongoDB
+manage backups
+manage servers
+configure replication
+
+Atlas handles those things.
+
+What is a Cluster?
+A running MongoDB server/database
+
+Create Cluster -> Create a MongoDB database instance that can store my data
+
+cluster (db instance) -> collections --> documents
+
+Why Are AWS, Azure, and Google Cloud Shown?
+
+MongoDB Atlas does NOT own data centers.
+
+Instead Atlas rents infrastructure from cloud providers:
+
+Amazon Web Services
+Microsoft Azure
+Google Cloud
+
+Atlas Cluster = Actual Database Server
+
+What MongoDB Compass is
+
+Compass is just a GUI tool.
+MongoDB Compass = Database Client
+
+
+Client
+   |
+   v
+Routes
+   |
+   v
+Middleware
+   |
+   v
+Controller
+   |
+   v
+Model
+   |
+   v
+Database
+
+server.js
+Application ka entry point.
+node server.js ( yeh cmd chane pe toh execution yahin se start hota hai.)
+what it contains
+Isme kya hota hai?
+Express app create hota hai
+Middleware register hote hain
+Routes connect hoti hain
+Database connection establish hota hai
+Server listen karta hai
+
+src/routes/
+Request kis URL par aayi hai uska mapping
+Client bole:
+
+GET /users
+
+Route decide karega:
+
+Is request ko User Controller ke paas bhejo
+router.get("/users", getUsers);
+router.post("/users", createUser);
+
+src/controllers/
+Business Logic.
+Example:
+
+const getUsers = async (req, res) => {
+   const users = await User.find();
+
+   res.json(users);
+};
+
+Controller:
+Data fetch karega
+Validation karega
+Response bhejega
+
+Responsibility
+Request ko process karna.
+
+src/models/
+Database schema aur database interaction.
+Agar MongoDB use kar rahe ho toh yahan Mongoose schemas bante hain.
+
+Responsibility
+Database se baat karna.
+
+src/middleware/
+Controller tak pahunchne se pehle chalne wala code.
+
+Responsibility
+Authentication
+Authorization
+Logging
+Error handling
+
+Usage:
+router.get("/profile", auth, getProfile);
+
+act as Security Guard.
+
+src/config/
+Project configurations.
+Example:
+
+MongoDB Connection
+Redis Connection
+Cloudinary Setup
+JWT Config
+
+Example:
+mongoose.connect(process.env.MONGO_URI);
+
+Responsibility
+External services configure karna.
+
+src/utils/
+Reusable helper functions.
+
+example
+generateShortCode()
+sendEmail()
+hashPassword()
+formatDate()
+
+Example:
+function generateShortCode() {
+   return Math.random().toString(36).substring(2,8);
+}
+
+.env
+Secret information store karne ke liye.
+
+Example:
+
+PORT=5000
+
+MONGO_URI=mongodb://localhost:27017/urlshortener
+JWT_SECRET=mysecret
+API_KEY=abcdef123
+
+
+Routes → URL mapping
+Controllers → Business logic
+Models → Database interaction/schema
+Middleware → Request preprocessing (auth, logging, validation)
+Config → Project configurations (DB, JWT, Cloudinary etc.)
+Utils → Reusable helper functions
+server.js → Application entry point
+.env → Environment variables and secret
+
+DB two types
+sql based (tables/relations)
+NoSQl (not only sql)
+
+NoSQL based DB --> mongo db --> object form mein data store (BSON)
+
+backend has 2 servers
+1. application server (handles user request)
+2. DB server (handles DB)
+
+
+As an engineer, whenever you connect to an external service, ask:
+What if it fails?
+
+Not exporting anything
+
+Ask yourself:
+
+How will server.js trigger this connection?
+
+Think about whether:
+this file should export a function
+OR
+just execute immediately
+For maintainability, I want you to think about that design choice.
+
+FAIL FAST PRINCIPLE
+A design principle where a system immediately halts its operation and flags an error the moment an abnormal condition or invalid input is detected. Instead of attempting to recover or guess the intent, it crashes loudly to prevent hidden data corruption and make debugging easier.
+
+DAY3
+AUTH_MODULE
+
+sbse pehle huemin kuch cheezeing dhyan rkhna hai
+1. cookie kaise set karte hai
+2. bcrypt kaise use karte hai forf password encryption and decryption
+3. jwt kya hai and jwt mein data kasie store karein and bahar nikalein
+
+res.cookie("name","harsh")
+
+2xx --> success
+4xx --> client made mistake
+5xx --> server made mistake
+3xx --> page has moved
+
+200 --> OK (data retireva)
+201 --> succusfully creatred resource
+400 --> bad request ( wrong format) 
+Missing Field
+Invalid Format
+Empty Values
+401 --> wrong data (User identity cannot be verified)
+403 --> forbidden (server listens the request but refuses to process it)
+Server understood the request
+Server knows who you are
+But you are NOT allowed to do it
+
+409 --> exiusting data mismatch
+301 --> temp redirection
+
+res object methods
+res.send() ---> Plain text
+HTML
+Object
+
+res.json() --> Very common in APIs.
+res.json({
+   message:"User created"
+})
+
+res.status() --> 
+By itself sends nothing.
+Usually chained.
+Example:
+res.status(201).json(...)
+
+res.redirect()
+
+protected route --> 
+
+auth
+singup API
+login API
+password hashing (bcrypt)
+JWT token generate
+protected route
+token verifcuation middleware
+
+token ---> rehta hai header meim (req.headers.authorisation)
+form data ---> req.body
+parameter data (abc/def) --> req.params
+
+api ke json response mein ek parameter hamesha rkho jo suiccess ya failure indicate kare 
+as "success: true"
+
+So:
+
+Login API
+returns token.
+Protected APIs
+receive token.
+
+In react project u have to just return token frontend will automatically store it in
+header (bearer token) so next time it will send it in header
+
+A JWT should contain the minimum information needed to identify the user.
+so id and role is sufficeint
+
+There is no route such as protected route in node js , it is nothing but a route with auth middleware which verifies and checks the token 
+Protected Route = Route with Auth Middleware
+so we have 2 types of routes -> public route and another private route
+
+next() function use kr rahe ho toh 'next' as a parameter bhi lena padega aapko
+'await' ka dhyan dooo 
+
+separation of concerns
+
+FOR MVP
+make it work 
+make it clean
+make it scalable
+
+GET /abc123
+Read shortCode
+↓
+Find in MongoDB
+↓
+Exists?
+   NO → 404
+↓
+Increment clicks
+↓
+Redirect to original URL
+
+Both help in request filtering
+Route parameter --> dynamic parts of URL
+/user/:id/view/:article --> req.params.id , req.params.article
+Query parameter --> 
+
+How Great Engineers Search
+a good engineer is not who knows everything
+
+A senior engineer's advantage is often:
+Problem decomposition
+not memory.
+
+how to make url shortner
+1.How get route param express?
+2.How redirect express?
+3.How increment field mongoose?
+4.How update document mongoose?
+Each search solves one tiny problem.
+
+search formula to use
+<technology> + <exact task>
+
+express route params
+mongoose findOne
+mongoose increment field
+jsonwebtoken verify token
+express redirect 
+bcrypt compare password
+
+
+how to solve any problem
+1. 5 min baitho problemn smjho
+2. break down karo
+3. flow banao
+4. solve each tiny problem
+
+Search Formula When Error Happens
+Instead of:
+mongodb not working
+search:
+MongooseServerSelectionError Could not connect to any servers Atlas
+Copy the actual error.
+
+Search Formula When Learning
+Don't search:
+
+JWT tutorial
+
+Search:
+jwt sign payload
+jwt verify middleware
+bearer token express
+Learn one concept at a time.
+
+My Personal Rule
+When stuck:
+Can I describe the problem in one sentence?
+If not:
+I haven't understood the problem yet.
+Once you can describe it clearly:
+Search becomes easy.
+
+TOKENS (both used for authentication but used diff purpose)
+Access Token --> short lived, to access protected APIs, sent to server with every request
+referesh token --> long lived,not usd to access protected APIs,used to generate access token
+refresh token rotation --> stolen issue
+
+DELETE (Authorization)
+JWT Middleware
+↓
+req.userId
+↓
+Read URL id from params
+↓
+Find URL
+↓
+Does URL exist?
+   NO -> 404
+↓
+Does URL.userId === req.userId ?
+   NO -> 403
+↓
+Delete URL
+↓
+200 Success
+
+
+jwt malformed -=-> token check issue
+
+jo mongo se id aayegi woh object() type ki hogi agar token information se compare karoge toh u have to convert it into string
+
+
+SEND THE DATA WHAT IS ACTUALLY REQUIRED
+Backend controls response shape
+Frontend gets only useful data
+This is called response shaping.
+
+projection is used in mongoose to get required field in mongoose or we can also use .select() method also
+
+PAGINATION
+the process of dividing a large dataset or a long document into smaller, easily manageable chunks.
+YOU NEED BELOW THINGS FOR PAGINATION
+1. page number
+2. limit
+3. skip ==> (page-1)*limit
+
+format pagination api --> https://abc/def?page=2&limit=10
+
+Mentors advice (IMP)
+That's how a good engineer debugs a new library instead of memorizing it
+inspect the shape.
+This habit saves hours of debugging.
+
+API Security
+1. Form Validation (express-validator,Zod,joi)
+2. CSRF Token (csurf)
+3. Password Hashing (Bcrypt)
+4. JWT Authentication (jsonwebtoken)
+6. Rate Limiting (express-rate-limit, express-slow-down)
+7. Helmet 
+
+TYPES OF ATTACKS
+1. Brute-Force ATTACKS
+2. DDoS (Denial of Service Attacks)
+
+ISSUES
+1. Server crash 
+2. Security Issue 
+
+SOME MORE HACKING ATTACKS
+1. Cross Site Scripting Attack (form mein Js code send kr dena jo server pe execute hoke complications create krega)
+2. information disclosure
+3. MIME Sniffing Attacks
+4. clickjacking 
+
+Inn sbhi attacks se bachne ke liye we can use SECURITY HEADERS (enable krke unhe)
+A package known as 'helmet' hamare liye yeh kaam krta hai
+
+
+STREAMS
+Data ko ek saath nahi, chote-chote chunks me process karna.
+
+for example
+
+video streaming --> agar youtube dekh rahe hai ya koi online video dekh rahe hai toh agar woh video 5 GB ki hai toh ek baari mein 5GB nhi ayega instead chunks mein ayega
+64KB --> play --> 64KB --> play --> 64KB --> play ......
+isi wajah se agar kbhi internet slow hota hai toh video bhi lag krti hai (buffering)
+
+audio streaming --> same spotify does
+same netflix does
+same for live cricket too but in live cricket koi future ka data exist nhi krta toh woh
+
