@@ -9,9 +9,12 @@ const {comparePasswd, hashPasswd} = require('../utils/authUtils');
 const User = require('../models/userModel');
 const registerUserSchema = require('../validators/auth-validator');
 const jwt = require('jsonwebtoken');
+const logger = require('../middleware/logging');
 
 async function createUser(req,res){
     
+    logger.info("signup api gets hit !!!");
+
     const {data,error} = registerUserSchema.safeParse(req.body);
 
     console.log("error",error)
@@ -38,6 +41,7 @@ async function createUser(req,res){
 
         if(emailExists)
         {
+            logger.warn("email exists for signup ",email);
             return res.status(409).json({
                 success: false,
                 message: "This email exists please try with another mail"
@@ -52,6 +56,8 @@ async function createUser(req,res){
             email: email
             });
     
+        logger.info("signup successful user created ",email," ",name);
+
         res.status(201).json({
             success: true,
             message: "user created successfully"
@@ -60,6 +66,7 @@ async function createUser(req,res){
     }
     catch(err)  
     {
+        logger.error(err);
         res.status(500).json({
             success: false,
             message: "server error unable to created user"
@@ -68,9 +75,12 @@ async function createUser(req,res){
 }
 
 async function checkmail(req,res){
-    
+
     const email = req.body.email;
     const password = req.body.password;
+
+    logger.info("sign in API gets hit !!! for email ",email," and password ",password);
+
     console.log(email," ",password);
     try 
     {
@@ -82,6 +92,7 @@ async function checkmail(req,res){
             const isValid =  await comparePasswd(password,userPasswd);
             if(!isValid)
             {
+                logger.warn("password is wrong for email ",email,"password ",userPasswd);
                 return res.status(401).json({
                     success: false,
                     message: "password is wrong"
@@ -93,6 +104,8 @@ async function checkmail(req,res){
                 expiresIn: '1h'
             });
 
+            logger.info("user logged in sucessfully ",email);
+
             return res.status(200).json({
                 success: true,
                 message: "login successfull",
@@ -100,6 +113,8 @@ async function checkmail(req,res){
             });
         }
         
+        logger.warn("email is wrong ",email);
+
         return res.status(400).json({
             success: false,
             message: "email is wrong !!!"
@@ -108,6 +123,7 @@ async function checkmail(req,res){
     }
     catch(err)
     {
+        logger.error(err);
         res.status(500).json({
             success: false,
             message: "server error"

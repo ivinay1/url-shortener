@@ -1,11 +1,14 @@
 const Url = require("../models/urlModel");
 const generateShortCode = require("../utils/generateShortCode");
 const authUtils = require('../utils/authUtils')
+const logger = require('../middleware/logging');
 
 const createShortURL = async (req, res) => {
   const userId = req.userId;
   const originalURL = req.body.URL;
   const customAlias = req.body.customAlias?.trim();
+
+  logger.info("API get hit for short URL Creation with details: ",userId," ",originalURL," ",customAlias);
 
   console.log(originalURL);
   // checking if the URL is previously shorted or not
@@ -17,7 +20,9 @@ const createShortURL = async (req, res) => {
     });
     console.log("i am here");
     if (shortedUrl) {
-      console.log("shortedURL exists");
+     
+      logger.info("shortedURL exists ",shortedUrl);
+
       return res.status(200).json({
         success: true,
         message: "shortcode exits",
@@ -28,6 +33,7 @@ const createShortURL = async (req, res) => {
       // check URL
       if (!generateShortCode.checkOriginalURL(originalURL)) {
         console.log("wrwe");
+        logger.error("Original URL is not correct ",originalURL);
         return res.status(400).json({
           success: false,
           mesaage: "URL is not correct",
@@ -40,6 +46,7 @@ const createShortURL = async (req, res) => {
       // url is valid and customAlias
       if (customAlias) {
         if (!(authUtils.reservedWordsAliases.includes(customAlias) && customAlias.length >= 3 && customAlias.length <= 5)) {
+          logger.error("customAlias format is not corrrect ",customAlias);
           return res.status(400).json({
             success: false,
             message: "customAlias length between 3 to 5 characters",
@@ -51,6 +58,7 @@ const createShortURL = async (req, res) => {
 
         if(isShortCodeExists)
         {
+            logger.error("custom alias already exists ",customAlias);
             return res.status(409).json({
                 success: false,
                 message: "custom alias already exists"
@@ -79,6 +87,8 @@ const createShortURL = async (req, res) => {
         userId: userId,
       });
 
+      logger.info("shortcode created successfully ",originalURL," ",shortCode);
+
       res.status(201).json({
         success: true,
         message: "shortcode created successfully",
@@ -87,6 +97,8 @@ const createShortURL = async (req, res) => {
       });
     }
   } catch (err) {
+
+    logger.error(err);
     res.status(500).json({
       success: false,
       message: "internal server error while onnecting to DB",
@@ -97,6 +109,9 @@ const createShortURL = async (req, res) => {
 const redirectToOriginal = async (req, res) => {
   // find original URL corresponding to cuurent shortcode in URL collection
   const shortcode = req.params.shortCode;
+  
+  logger.info("shortcode gets hit !!! for redirection ",shortcode);
+
   console.log("shortcode ", shortcode);
   try {
     const urlRecord = await Url.findOneAndUpdate(
@@ -106,6 +121,8 @@ const redirectToOriginal = async (req, res) => {
     );
     // con
 
+    logger.error("No URL exists corresponding to shortCode ",shortCode);
+
     if (!urlRecord) {
       return res.status(404).json({
         success: false,
@@ -114,9 +131,11 @@ const redirectToOriginal = async (req, res) => {
     }
 
     const originalURL = urlRecord.originalUrl;
+    logger.info("redirection is happeing for originalURL and shortcode ",originalURL," ",shortcode);
 
     res.redirect(originalURL);
   } catch (err) {
+    logger.error(err);
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching Original URL",
@@ -150,6 +169,8 @@ const getUserUrls = async (req, res) => {
 
   const skip = (pageNumber - 1) * limit;
 
+  logger.info("getUserURL controller hit!!! for userId ",userID);
+
   try {
     const totalURLs = await Url.countDocuments(query);
     const userURLs = await Url.find(query)
@@ -160,6 +181,8 @@ const getUserUrls = async (req, res) => {
 
     const totalPages = Math.ceil(totalURLs / limit);
 
+    logger.info("user URLs successfully fetched with total records as ",totalURLs);
+
     return res.status(200).json({
       success: true,
       userURLsData: userURLs,
@@ -168,6 +191,7 @@ const getUserUrls = async (req, res) => {
       currentPage: pageNumber,
     });
   } catch (err) {
+    logger.error(err);
     return res.status(500).json({
       success: false,
       message: "Internal server error while getting user URLs",
@@ -178,6 +202,8 @@ const getUserUrls = async (req, res) => {
 const deleteURL = async (req, res) => {
   const urlId = req.params.urlId;
   const userId = req.userId;
+
+  logger.info("delete URL is hit !!! for user ",userId);
 
   try {
     const urlRecord = await Url.findById(urlId);
@@ -192,7 +218,10 @@ const deleteURL = async (req, res) => {
     console.log("URL Record : ", urlRecord);
     console.log(urlRecord.userId);
     console.log(userId);
+
+
     if (urlRecord.userId.toString() != userId) {
+      logger.error("you are not authorised to perform this action ",userId);
       return res.status(403).json({
         success: false,
         message: "you are not authorised to perform this action",
@@ -201,6 +230,8 @@ const deleteURL = async (req, res) => {
 
     const deletedURLRecord = await Url.findByIdAndDelete(urlId);
 
+    logger.info("successfully deleted url for user ",userId," ",deletedURLRecord.originalUrl);
+
     return res.status(200).json({
       success: true,
       message: "successfully deleted",
@@ -208,6 +239,7 @@ const deleteURL = async (req, res) => {
       shortcode: deletedURLRecord.shortCode,
     });
   } catch (err) {
+    logger.error(err);
     return res.status(500).json({
       success: false,
       message: "Internal server error while deleting user",
@@ -220,10 +252,13 @@ const EditURL = async (req, res) => {
   const urlId = req.params.urlId;
   const OriginalURL = req.body.URL;
 
+  logger.info("Edit URL hit !!! with orihanlURL and userID ",OriginalURL," ",userId);
+
   try {
     const urlRecord = await Url.findById(urlId);
     //check for url record exists
     if (!urlRecord) {
+      logger.error("No URL record exists corresponding to URL Id ",urlId);
       return res.status(404).json({
         success: false,
         message: "No URL record exists corresponding to URL Id",
@@ -232,6 +267,7 @@ const EditURL = async (req, res) => {
 
     // check authorization
     if (urlRecord.userId.toString() != userId) {
+      logger.error("you are not authorised to perform this action ",userId);
       return res.status(403).json({
         success: false,
         message: "you are not authorised to perform this action",
@@ -239,6 +275,7 @@ const EditURL = async (req, res) => {
     }
     // check if updating url is valid or not
     if (!generateShortCode.checkOriginalURL(OriginalURL)) {
+      logger.error("URL is not valid ",OriginalURL);
       return res.status(400).json({
         success: false,
         message: "URL is not valid",
@@ -251,12 +288,15 @@ const EditURL = async (req, res) => {
       { new: true },
     );
 
+    logger.info("successfully updated original URL for corresponding userId ",userId," ",OriginalURL);
+
     return res.status(200).json({
       success: true,
       message: "successfully updated original URL",
       OriginalURL: updatedURLRecord.originalUrl,
     });
   } catch (err) {
+    logger.error(err)
     console.log(err);
     return res.status(500).json({
       success: false,
@@ -269,10 +309,13 @@ const GetAnalytics = async (req, res) => {
   const userId = req.userId;
   const urlId = req.params.urlId;
 
+  logger.info("GetAnalytics is hit !!! for userId ",userId);
+
   try {
     const urlRecord = await Url.findById(urlId);
     //check for url record exists
     if (!urlRecord) {
+      logger.error("No URL record exists corresponding to URL Id and userID ",userId," ",urlId);
       return res.status(404).json({
         success: false,
         message: "No URL record exists corresponding to URL Id",
@@ -281,11 +324,14 @@ const GetAnalytics = async (req, res) => {
 
     // check authorization
     if (urlRecord.userId.toString() != userId) {
+      logger.error("you are not authorised to perform GetAnalytics action ",userId);
       return res.status(403).json({
         success: false,
         message: "you are not authorised to perform this action",
       });
     }
+
+    logger.info("successfully got record for analytics ",userId);
 
     return res.status(200).json({
       success: true,
@@ -298,6 +344,7 @@ const GetAnalytics = async (req, res) => {
       },
     });
   } catch (err) {
+    logger.error(err);
     console.log(err);
     return res.status(500).json({
       success: false,
@@ -309,6 +356,8 @@ const GetAnalytics = async (req, res) => {
 const GetTopURLs = async (req, res) => {
   const userId = req.userId;
 
+  logger.info("GetTopURLs is hit !!! for userId ",userId);
+
   try {
     const topURLRecord = await Url.find(
       { userId: userId },
@@ -317,12 +366,15 @@ const GetTopURLs = async (req, res) => {
       .sort({ clicks: -1 })
       .limit(3);
 
+    logger.info("successfully got top URLs for userId ",userId);
+
     return res.status(200).json({
       success: true,
       message: "successfully got top URLs",
       data: topURLRecord,
     });
   } catch (err) {
+    logger.error(err);
     console.log(err);
     return res.status(500).json({
       success: false,
